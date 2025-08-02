@@ -1,6 +1,7 @@
-﻿using LibraryHubAPI.Models;
-using Microsoft.AspNetCore.Http;
+﻿using LibraryHubAPI.Data;
+using LibraryHubAPI.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace LibraryHubAPI.Controllers
 {
@@ -8,25 +9,24 @@ namespace LibraryHubAPI.Controllers
     [ApiController]
     public class BooksController : ControllerBase
     {
-        static private List<Book> books = new List<Book>
-        {
-            new Book { Id = 1, Title = "1984", Author = "George Orwell", YearPublished = 1949 },
-            new Book { Id = 2, Title = "To Kill a Mockingbird", Author = "Harper Lee", YearPublished = 1960 },
-            new Book { Id = 3, Title = "The Great Gatsby", Author = "F. Scott Fitzgerald", YearPublished = 1925 },,
-            new Book { Id = 4, Title = "The Lord of the Rings", Author = "J.R.R. Tolkien", YearPublished = 1954 },
-            new Book { Id = 5, Title = "The Hobbit", Author = "J.R.R. Tolkien", YearPublished = 1937 },
-        };
+        private readonly LibraryHubDbContext _context;
 
-        [HttpGet]
-        public ActionResult<IEnumerable<Book>> GetBooks()
+        public BooksController(LibraryHubDbContext context)
         {
-            return Ok(books);
+            _context = context;
         }
 
         [HttpGet]
-        public ActionResult<Book> GetBookById(int id)
+        public async Task<ActionResult<IEnumerable<Book>>> GetBooks()
         {
-            var book = books.FirstOrDefault(b => b.Id == id);
+            var books = await _context.Books.ToListAsync();
+            return Ok(books);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Book>> GetBookById(int id)
+        {
+            var book = await _context.Books.FindAsync(id);
             if (book is null)
                 return NotFound();
 
@@ -34,40 +34,42 @@ namespace LibraryHubAPI.Controllers
         }
 
         [HttpPost]
-        public ActionResult<Book> CreateBook([FromBody] Book newBook)
+        public async Task<ActionResult<Book>> CreateBook([FromBody] Book newBook)
         {
             if (newBook is null || string.IsNullOrWhiteSpace(newBook.Title) || string.IsNullOrWhiteSpace(newBook.Author))
                 return BadRequest("Invalid book data.");
 
-            newBook.Id = books.Max(b => b.Id) + 1;
-            books.Add(newBook);
+            await _context.Books.AddAsync(newBook);
+            await _context.SaveChangesAsync();
             return CreatedAtAction(nameof(GetBookById), new { id = newBook.Id }, newBook);
         }
 
         [HttpPut("{id}")]
-        public ActionResult UpdateBook(int id, [FromBody] Book updatedBook)
+        public async Task<IActionResult> UpdateBook(int id, [FromBody] Book updatedBook)
         {
             if (updatedBook is null || string.IsNullOrWhiteSpace(updatedBook.Title) || string.IsNullOrWhiteSpace(updatedBook.Author))
                 return BadRequest("Invalid book data.");
 
-            var book = books.FirstOrDefault(b => b.Id == id);
+            var book = await _context.Books.FindAsync(id);
             if (book is null)
                 return NotFound();
 
             book.Title = updatedBook.Title;
             book.Author = updatedBook.Author;
             book.YearPublished = updatedBook.YearPublished;
+            await _context.SaveChangesAsync();
             return NoContent();
         }
 
         [HttpDelete("{id}")]
-        public ActionResult DeleteBook(int id)
+        public async Task<IActionResult> DeleteBook(int id)
         {
-            var book = books.FirstOrDefault(b => b.Id == id);
+            var book = await _context.Books.FindAsync(id);
             if (book is null)
                 return NotFound();
 
-            books.Remove(book);
+            _context.Remove(book);
+            await _context.SaveChangesAsync();
             return NoContent();
         }
     }

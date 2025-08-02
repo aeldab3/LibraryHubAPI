@@ -1,6 +1,30 @@
-@LibraryHubAPI_HostAddress = http://localhost:5261
+@rootURL = http://localhost:5261
 
-GET {{LibraryHubAPI_HostAddress}}/weatherforecast/
+GET {{rootURL}}/api/books
 Accept: application/json
 
 ###
+GET {{rootURL}}/api/books/5
+Accept: application/json
+
+###
+POST {{rootURL}}/api/books
+Content-Type: application/json
+{
+  "Title": "The 7 Habits of Highly Effective People",
+  "Author": "Stephen R. Covey",
+  "YearPublished": 1989
+}
+
+###
+PUT {{rootURL}}/api/books/6
+Content-Type: application/json
+{
+  "Title": "The 7 Habits of Highly Effective People",
+  "Author": "Stephen R. covey",
+  "YearPublished": 1989
+}
+
+###
+DELETE {{rootURL}}/api/books/6
+Accept: application/json
